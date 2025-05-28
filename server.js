@@ -92,7 +92,8 @@ app.get('/api/list/:name', (req, res) => {
   const date = new Date().toISOString().slice(0,10);
   const fn = `${name}_${date}.csv`;
   const fp = path.join(LISTS_DIR, fn);
-  if (!fs.existsSync(fp)) fs.writeFileSync(fp, 'code,quantity,price,total\n');
+  if (!fs.existsSync(fp)) fs.writeFileSync(fp, 'code,quantity,price,total
+');
   const rows = [];
   fs.createReadStream(fp)
     .pipe(csv())
