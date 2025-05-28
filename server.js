@@ -83,10 +83,11 @@ app.get('/api/list/:name', (req, res) => {
   const date = new Date().toISOString().slice(0,10);
   const fn = `${name}_${date}.csv`;
   const fp = path.join(LISTS_DIR, fn);
-  if (!fs.existsSync(fp)) fs.writeFileSync(fp, 'code,quantity\n');
+  if (!fs.existsSync(fp)) fs.writeFileSync(fp, 'code,quantity,price\n');
   const rows = [];
-  fs.createReadStream(fp).pipe(csv())
-    .on('data', r => rows.push(r))
+  fs.createReadStream(fp)
+    .pipe(csv())
+    .on('data', r => rows.push({ code: r.code, quantity: parseFloat(r.quantity), price: parseFloat(r.price) }))
     .on('end', () => res.json(rows));
 });
 app.post('/api/list/:name/update', (req, res) => {
@@ -97,16 +98,20 @@ app.post('/api/list/:name/update', (req, res) => {
   const fp = path.join(LISTS_DIR, fn);
   const data = {};
   if (fs.existsSync(fp)) {
-    fs.createReadStream(fp).pipe(csv())
-      .on('data', r => data[r.code] = parseInt(r.quantity))
+    fs.createReadStream(fp)
+      .pipe(csv())
+      .on('data', r => data[r.code] = { quantity: parseFloat(r.quantity), price: parseFloat(r.price) })
       .on('end', () => {
-        data[code] = (data[code]||0)+parseInt(delta);
+        const prev = data[code] || { quantity: 0, price: itemDB[code]?.price || 0 };
+        const newQty = prev.quantity + parseFloat(delta);
+        data[code] = { quantity: newQty, price: prev.price };
         const writer = createCsvWriter({ path: fp, header: [
           { id: 'code', title: 'code' },
-          { id: 'quantity', title: 'quantity' }
+          { id: 'quantity', title: 'quantity' },
+          { id: 'price', title: 'price' }
         ]});
-        writer.writeRecords(Object.entries(data).map(([c,q])=>({code:c,quantity:q})))
-          .then(() => res.json({ success: true, data }));
+        const records = Object.entries(data).map(([c, v]) => ({ code: c, quantity: v.quantity, price: v.price }));
+        writer.writeRecords(records).then(() => res.json({ success: true, data }));
       });
   } else res.status(400).json({ error: 'List not initialized' });
 });
