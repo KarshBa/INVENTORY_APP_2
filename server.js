@@ -25,10 +25,12 @@ const loadItemDB = () => {
     fs.createReadStream(ITEM_DB)
       .pipe(csv())
       .on('data', row => {
-        itemDB[row.code] = {
-          brand: row.brand,
-          description: row.description,
-          price: parseFloat(row.price)
+        const code = row['Main Code'] || row.code;
+        if (!code) return;
+        itemDB[code] = {
+          brand: row['Main Brand'] || row.brand,
+          description: row['Main Item Description'] || row.description,
+          price: parseFloat(row['Regular Price'] || row.price)
         };
       });
   }
