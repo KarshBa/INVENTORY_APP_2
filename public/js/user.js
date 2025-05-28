@@ -7,7 +7,22 @@
   const searchBtn     = document.getElementById('searchBtn');
   const itemRow       = document.getElementById('itemRow');
 
-  // ... existing loadLists/initList/applyUpdate functions unchanged ...
+  // Load existing lists into dropdown
+  async function loadLists() {
+    const res   = await fetch('/api/admin/lists');
+    const files = await res.json();
+    const names = [...new Set(files.map(f => f.name.split('_')[0]))];
+    listSelect.innerHTML = names
+      .map(n => `<option value="${n}">${n}</option>`)
+      .join('');
+    return names;
+  }
+
+  // Initialize (or create) the named list on the server
+  async function initList(name) {
+    currentList = name;
+    await fetch(`/api/list/${name}`);
+  }
 
   // Apply +/- delta or custom quantity to the current item
   async function applyUpdate(delta) {
@@ -66,6 +81,13 @@
   document.querySelectorAll('#qtyControls button[data-delta]')
     .forEach(btn => btn.onclick = () => applyUpdate(btn.dataset.delta));
   document.getElementById('customBtn').onclick = () => applyUpdate(document.getElementById('customQty').value);
+
+  // Initial load: populate lists and set default
+  const names = await loadLists();
+  if (names.length) {
+    await initList(names[0]);
+    listSelect.value = names[0];
+  }
 
   // Initial focus
   codeInput.focus();
