@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Inventory User</title>
+  <style>
+    button { font-size: 1.2em; padding: 10px 20px; margin: 5px; cursor: pointer; }
+    button[data-delta="1"], button[data-delta="5"] { background-color: green; color: white; }
+    button[data-delta="-1"], button[data-delta="-5"] { background-color: red; color: white; }
+    #searchBtn { background-color: blue; color: white; }
+  </style>
 </head>
 <body>
   <h1>User Inventory Count</h1>
@@ -17,7 +23,7 @@
     <button data-delta="5">+5</button>
     <button data-delta="-1">-1</button>
     <button data-delta="-5">-5</button>
-    <input type="number" id="customQty" placeholder="Qty" />
+    <input type="number" id="customQty" placeholder="Qty" style="font-size:1.2em; margin:5px; width:80px;" />
     <button id="customBtn">Update</button>
   </div>
   <script src="js/user.js"></script>
