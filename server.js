@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const csv = require('csv-parser');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const multer = require('multer');
 const app = express();
@@ -17,24 +16,25 @@ const ITEM_DB = path.join(DATA_DIR, 'item_list.csv');
 const LISTS_DIR = path.join(DATA_DIR, 'lists');
 if (!fs.existsSync(LISTS_DIR)) fs.mkdirSync(LISTS_DIR);
 
-// Load item DB (using row indices: A=0, B=1, C=2, N=13)
+// Load item DB synchronously by reading lines and splitting columns
 let itemDB = {};
-const loadItemDB = () => {
+function loadItemDB() {
   itemDB = {};
-  if (fs.existsSync(ITEM_DB)) {
-    let first = true;
-    fs.createReadStream(ITEM_DB)
-      .pipe(csv({ headers: false }))
-      .on('data', row => {
-        if (first) { first = false; return; }
-        const code = row[0].toString().trim();
-        const brand = row[1];
-        const description = row[2];
-        const price = parseFloat(row[13]);
-        itemDB[code] = { brand, description, price };
-      });
+  if (!fs.existsSync(ITEM_DB)) return;
+  const content = fs.readFileSync(ITEM_DB, 'utf8');
+  const lines = content.split(/\r?\n/);
+  // Skip header line
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = line.split(',');
+    const code = cols[0].trim();
+    const brand = cols[1] || '';
+    const description = cols[2] || '';
+    const price = parseFloat(cols[13] || '0');
+    itemDB[code] = { brand, description, price };
   }
-};
+}
 loadItemDB();
 
 // Multer for CSV upload
@@ -64,27 +64,34 @@ app.get('/api/admin/lists/:file', (req, res) => {
 
 // User endpoints
 app.get('/api/item/:code', (req, res) => {
-  const code = req.params.code;
-  if (itemDB[code]) return res.json({ exists: true, item: itemDB[code] });
-  return res.json({ exists: false });
+  const code = req.params.code.trim();
+  if (itemDB.hasOwnProperty(code)) {
+    return res.json({ exists: true, item: itemDB[code] });
+  } else {
+    return res.json({ exists: false });
+  }
 });
 
 app.post('/api/item', (req, res) => {
   const { code, brand, description, price } = req.body;
-  itemDB[code] = { brand, description, price: parseFloat(price) };
+  const line = [
+    code,
+    brand,
+    description,
+    ...Array(10).fill(''),
+    price
+  ].join(',');
   const headerExists = fs.existsSync(ITEM_DB);
-  const writer = createCsvWriter({
-    path: ITEM_DB,
-    header: [
-      { id: 0, title: 'Main Code' },
-      { id: 1, title: 'Main Brand' },
-      { id: 2, title: 'Main Item Description' },
-      { id: 13, title: 'Regular Price' }
-    ],
-    append: headerExists
-  });
-  writer.writeRecords([[code, brand, description, price]])
-    .then(() => { loadItemDB(); res.json({ success: true }); });
+  if (!headerExists) {
+    // Write header row (A-N) if new
+    const headerCols = ['Main Code','Main Brand','Main Item Description']
+      .concat(Array(10).fill(''))
+      .concat(['Regular Price']);
+    fs.writeFileSync(ITEM_DB, headerCols.join(',') + '\n');
+  }
+  fs.appendFileSync(ITEM_DB, line + '\n');
+  loadItemDB();
+  res.json({ success: true });
 });
 
 app.get('/api/list/:name', (req, res) => {
@@ -97,15 +104,20 @@ app.get('/api/list/:name', (req, res) => {
     fs.writeFileSync(fp, 'code,quantity,price,total\n');
   }
   const rows = [];
-  fs.createReadStream(fp)
-    .pipe(csv())
-    .on('data', r => rows.push({
-      code: r.code,
-      quantity: parseFloat(r.quantity),
-      price: parseFloat(r.price),
-      total: parseFloat(r.total)
-    }))
-    .on('end', () => res.json(rows));
+  const content = fs.readFileSync(fp, 'utf8');
+  const lines = content.split(/\r?\n/);
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = line.split(',');
+    rows.push({
+      code: cols[0],
+      quantity: parseFloat(cols[1]),
+      price: parseFloat(cols[2]),
+      total: parseFloat(cols[3])
+    });
+  }
+  res.json(rows);
 });
 
 app.post('/api/list/:name/update', (req, res) => {
@@ -115,32 +127,30 @@ app.post('/api/list/:name/update', (req, res) => {
   const fn = `${name}_${date}.csv`;
   const fp = path.join(LISTS_DIR, fn);
   if (!fs.existsSync(fp)) return res.status(400).json({ error: 'List not initialized' });
-  const data = {};
-  fs.createReadStream(fp)
-    .pipe(csv())
-    .on('data', r => {
-      data[r.code] = { quantity: parseFloat(r.quantity), price: parseFloat(r.price) };
-    })
-    .on('end', () => {
-      const prev = data[code] || { quantity: 0, price: itemDB[code]?.price || 0 };
-      const newQty = prev.quantity + parseFloat(delta);
-      data[code] = { quantity: newQty, price: prev.price };
-      const writer = createCsvWriter({
-        path: fp,
-        header: [
-          { id: 'code', title: 'code' },
-          { id: 'quantity', title: 'quantity' },
-          { id: 'price', title: 'price' },
-          { id: 'total', title: 'total' }
-        ]
-      });
-      writer.writeRecords(Object.entries(data).map(([c, v]) => ({
-        code: c,
-        quantity: v.quantity,
-        price: v.price,
-        total: v.quantity * v.price
-      }))).then(() => res.json({ success: true, data }));
-    });
+  // Read existing data
+  const content = fs.readFileSync(fp, 'utf8');
+  const lines = content.split(/\r?\n/);
+  const header = lines[0];
+  const dataMap = {};
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = line.split(',');
+    dataMap[cols[0]] = {
+      quantity: parseFloat(cols[1]),
+      price: parseFloat(cols[2])
+    };
+  }
+  const prev = dataMap[code] || { quantity: 0, price: itemDB[code]?.price || 0 };
+  const newQty = prev.quantity + parseFloat(delta);
+  dataMap[code] = { quantity: newQty, price: prev.price };
+  // Build CSV
+  const rows = Object.entries(dataMap).map(([c, v]) =>
+    `${c},${v.quantity},${v.price},${v.quantity * v.price}`
+  );
+  fs.writeFileSync(fp, header + '\n' + rows.join('\n') + '\n');
+  // Return updated map
+  res.json({ success: true, data: dataMap });
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
