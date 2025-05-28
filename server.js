@@ -17,7 +17,7 @@ const ITEM_DB = path.join(DATA_DIR, 'item_list.csv');
 const LISTS_DIR = path.join(DATA_DIR, 'lists');
 if (!fs.existsSync(LISTS_DIR)) fs.mkdirSync(LISTS_DIR);
 
-// Load item DB into memory
+// Load item DB into memory (supports CSVs with headers Main Code, Main Brand, etc.)
 let itemDB = {};
 const loadItemDB = () => {
   itemDB = {};
@@ -117,13 +117,10 @@ app.post('/api/list/:name/update', (req, res) => {
       .on('data', row => data[row.code] = parseInt(row.quantity))
       .on('end', () => {
         data[code] = (data[code] || 0) + parseInt(delta);
-        const writer = createCsvWriter({
-          path: filepath,
-          header: [
-            { id: 'code', title: 'code' },
-            { id: 'quantity', title: 'quantity' }
-          ]
-        });
+        const writer = createCsvWriter({ path: filepath, header: [
+          { id: 'code', title: 'code' },
+          { id: 'quantity', title: 'quantity' }
+        ]});
         const records = Object.entries(data).map(([c,q])=>({ code: c, quantity: q }));
         writer.writeRecords(records)
           .then(() => res.json({ success: true, data }));
