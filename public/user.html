@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Inventory User</title>
-<style>
-  button{font-size:1.1em;padding:8px 16px;margin:4px;cursor:pointer;}
-  button[data-delta="1"],button[data-delta="5"]{background:green;color:#fff;}
-  button[data-delta="-1"],button[data-delta="-5"]{background:red;color:#fff;}
-  #searchBtn{background:blue;color:#fff;}
-</style>
+  <meta charset="UTF-8">
+  <title>Inventory User</title>
+  <style>
+    button { font-size:1.1em; padding:8px 16px; margin:4px; cursor:pointer; }
+    button[data-delta="1"],button[data-delta="5"] { background:green; color:#fff; }
+    button[data-delta="-1"],button[data-delta="-5"] { background:red; color:#fff; }
+    #searchBtn { background:blue; color:#fff; }
+  </style>
 </head>
 <body>
   <h1>Inventory Count</h1>
@@ -18,7 +18,7 @@
     <select id="listSelect"></select>
   </div>
   <div>
-    <label>Main Code: <input type="text" id="codeInput"/></label>
+    <label>Main Code: <input type="text" id="codeInput" autofocus/></label>
     <button id="searchBtn">Search</button>
   </div>
   <table border="1" id="itemTable">
@@ -30,9 +30,9 @@
     <button data-delta="5">+5</button>
     <button data-delta="-1">-1</button>
     <button data-delta="-5">-5</button>
-    <input type="number" id="customQty" placeholder="Qty" style="width:70px;font-size:1em;"/>
+    <input type="number" id="customQty" step="any" placeholder="Qty" style="width:70px;font-size:1em;"/>
     <button id="customBtn">Update</button>
   </div>
-<script src="js/user.js"></script>
+  <script src="js/user.js"></script>
 </body>
 </html>
