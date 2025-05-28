@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventory User</title>
+</head>
+<body>
+  <h1>User Inventory Count</h1>
+  <label>Main Code: <input type="text" id="codeInput" /></label>
+  <button id="searchBtn">Search</button>
+  <table border="1" id="itemTable">
+    <tr><th>Code</th><th>Brand</th><th>Description</th><th>Price</th></tr>
+    <tr id="itemRow"><td colspan="4">No item selected</td></tr>
+  </table>
+  <div id="qtyControls">
+    <button data-delta="1">+1</button>
+    <button data-delta="5">+5</button>
+    <button data-delta="-1">-1</button>
+    <button data-delta="-5">-5</button>
+    <input type="number" id="customQty" placeholder="Qty" />
+    <button id="customBtn">Update</button>
+  </div>
+  <script src="js/user.js"></script>
+</body>
+</html>
