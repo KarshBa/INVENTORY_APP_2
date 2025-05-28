@@ -92,12 +92,19 @@ app.get('/api/list/:name', (req, res) => {
   const date = new Date().toISOString().slice(0,10);
   const fn = `${name}_${date}.csv`;
   const fp = path.join(LISTS_DIR, fn);
-  if (!fs.existsSync(fp)) fs.writeFileSync(fp, 'code,quantity,price,total
-');
+  if (!fs.existsSync(fp)) {
+    // Initialize with four columns including total
+    fs.writeFileSync(fp, 'code,quantity,price,total\n');
+  }
   const rows = [];
   fs.createReadStream(fp)
     .pipe(csv())
-    .on('data', r => rows.push({ code: r.code, quantity: parseFloat(r.quantity), price: parseFloat(r.price), total: parseFloat(r.total) }))
+    .on('data', r => rows.push({
+      code: r.code,
+      quantity: parseFloat(r.quantity),
+      price: parseFloat(r.price),
+      total: parseFloat(r.total)
+    }))
     .on('end', () => res.json(rows));
 });
 
@@ -107,11 +114,13 @@ app.post('/api/list/:name/update', (req, res) => {
   const date = new Date().toISOString().slice(0,10);
   const fn = `${name}_${date}.csv`;
   const fp = path.join(LISTS_DIR, fn);
-  const data = {};
   if (!fs.existsSync(fp)) return res.status(400).json({ error: 'List not initialized' });
+  const data = {};
   fs.createReadStream(fp)
     .pipe(csv())
-    .on('data', r => data[r.code] = { quantity: parseFloat(r.quantity), price: parseFloat(r.price) })
+    .on('data', r => {
+      data[r.code] = { quantity: parseFloat(r.quantity), price: parseFloat(r.price) };
+    })
     .on('end', () => {
       const prev = data[code] || { quantity: 0, price: itemDB[code]?.price || 0 };
       const newQty = prev.quantity + parseFloat(delta);
@@ -125,9 +134,12 @@ app.post('/api/list/:name/update', (req, res) => {
           { id: 'total', title: 'total' }
         ]
       });
-      writer.writeRecords(
-        Object.entries(data).map(([c, v]) => ({ code: c, quantity: v.quantity, price: v.price, total: v.quantity * v.price }))
-      ).then(() => res.json({ success: true, data }));
+      writer.writeRecords(Object.entries(data).map(([c, v]) => ({
+        code: c,
+        quantity: v.quantity,
+        price: v.price,
+        total: v.quantity * v.price
+      }))).then(() => res.json({ success: true, data }));
     });
 });
 
