@@ -1,34 +1,50 @@
-(async()=>{
+(async () => {
   const form = document.getElementById('dbForm');
   const listEl = document.getElementById('lists');
-  const loadLists = async () => {
-    listEl.innerHTML = '';
-    const lists = await fetch('/api/admin/lists').then(r=>r.json());
-    if (!lists.length) {
-      const li = document.createElement('li');
-      li.textContent = 'No lists available';
-      listEl.append(li);
-    } else {
-      lists.forEach(l=>{
-        const li = document.createElement('li');
-        const link = document.createElement('a');
-        link.href = `/api/admin/lists/${l.name}`;
-        link.textContent = l.name;
-        li.append(link);
-        listEl.append(li);
-      });
-    }
-  };
 
-  form.onsubmit = async e => {
+  // Fetch and display all user lists
+  async function loadLists() {
+    listEl.innerHTML = '';
+    try {
+      const response = await fetch('/api/admin/lists');
+      const lists = await response.json();
+      if (!lists.length) {
+        listEl.innerHTML = '<li>No lists available</li>';
+      } else {
+        lists.forEach(({ name }) => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = `/api/admin/lists/${name}`;
+          a.textContent = name;
+          li.appendChild(a);
+          listEl.appendChild(li);
+        });
+      }
+    } catch (err) {
+      console.error('Error loading lists:', err);
+      listEl.innerHTML = '<li>Error loading lists</li>';
+    }
+  }
+
+  // Handle database upload
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
-    const res = await fetch('/api/admin/upload-db',{ method:'POST', body: fd }).then(r=>r.json());
-    if (res.success) {
-      alert('Database updated');
-      loadLists();
+    try {
+      const res = await fetch('/api/admin/upload-db', { method: 'POST', body: fd });
+      const result = await res.json();
+      if (result.success) {
+        alert('Database updated');
+        await loadLists();
+      } else {
+        alert('Upload failed');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Error uploading database');
     }
-  };
+  });
 
-  loadLists();
+  // Initial load
+  await loadLists();
 })();
