@@ -1,31 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Inventory User</title>
-  <style>
-    button { font-size: 1.2em; padding: 10px 20px; margin: 5px; cursor: pointer; }
-    button[data-delta="1"], button[data-delta="5"] { background-color: green; color: white; }
-    button[data-delta="-1"], button[data-delta="-5"] { background-color: red; color: white; }
-    #searchBtn { background-color: blue; color: white; }
-  </style>
+<meta charset="UTF-8">
+<title>Inventory User</title>
+<style>
+  button{font-size:1.1em;padding:8px 16px;margin:4px;cursor:pointer;}
+  button[data-delta="1"],button[data-delta="5"]{background:green;color:#fff;}
+  button[data-delta="-1"],button[data-delta="-5"]{background:red;color:#fff;}
+  #searchBtn{background:blue;color:#fff;}
+</style>
 </head>
 <body>
-  <h1>User Inventory Count</h1>
-  <label>Main Code: <input type="text" id="codeInput" /></label>
-  <button id="searchBtn">Search</button>
+  <h1>Inventory Count</h1>
+  <div>
+    <label>List Name: <input type="text" id="listName" placeholder="New or existing"/></label>
+    <button id="setList">Set List</button>
+    <select id="listSelect"></select>
+  </div>
+  <div>
+    <label>Main Code: <input type="text" id="codeInput"/></label>
+    <button id="searchBtn">Search</button>
+  </div>
   <table border="1" id="itemTable">
-    <tr><th>Code</th><th>Brand</th><th>Description</th><th>Price</th></tr>
-    <tr id="itemRow"><td colspan="4">No item selected</td></tr>
+    <tr><th>Code</th><th>Brand</th><th>Description</th><th>Price</th><th>Qty</th></tr>
+    <tr id="itemRow"><td colspan="5">No item selected</td></tr>
   </table>
   <div id="qtyControls">
     <button data-delta="1">+1</button>
     <button data-delta="5">+5</button>
     <button data-delta="-1">-1</button>
     <button data-delta="-5">-5</button>
-    <input type="number" id="customQty" placeholder="Qty" style="font-size:1.2em; margin:5px; width:80px;" />
+    <input type="number" id="customQty" placeholder="Qty" style="width:70px;font-size:1em;"/>
     <button id="customBtn">Update</button>
   </div>
-  <script src="js/user.js"></script>
+<script src="js/user.js"></script>
 </body>
 </html>
